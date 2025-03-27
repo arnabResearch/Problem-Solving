@@ -52,19 +52,27 @@
         document.addEventListener("click", enableTabDetection, { once: true });
         document.addEventListener("keydown", enableTabDetection, { once: true });
 
-        document.addEventListener("visibilitychange", function () {
+        function lockQuiz() {
             if (!hasInteracted || quizDisabled) return; // Ignore if no interaction or already disabled
 
-            if (document.hidden) {
-                quizDisabled = true; // Lock quiz permanently
+            quizDisabled = true; // Lock quiz permanently
 
-                // Hide Google Form & show blocked message
-                document.getElementById("quiz-container").style.display = "none";
-                document.getElementById("quiz-blocked").style.display = "block";
+            // Hide Google Form & show blocked message
+            document.getElementById("quiz-container").style.display = "none";
+            document.getElementById("quiz-blocked").style.display = "block";
 
-                alert("You switched tabs! Your quiz attempt is now locked.");
-            }
+            alert("You switched tabs! Your quiz attempt is now locked.");
+        }
+
+        // Detect tab switch using multiple methods
+        document.addEventListener("visibilitychange", function () {
+            if (document.hidden) lockQuiz();
         });
+
+        window.addEventListener("blur", function () {
+            lockQuiz();
+        });
+
     </script>
 
 </body>
