@@ -38,22 +38,29 @@
     <!-- Replace the src URL with your actual Google Form link -->
     <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSeFhbFW0ExbinRdAeZ3z9Uxt5f6mPWVH_uC-G-FhMX5BlGgRA/viewform?embedded=true"></iframe>
     <script>
-        let tabSwitchCount = 0;
+    let tabSwitchCount = 0;
+    let firstLoad = true;  // Ignore first tab switch event
+    
+    document.addEventListener("visibilitychange", function () {
+        if (firstLoad) {
+            firstLoad = false;  // Ignore first event
+            return;
+        }
         
-        document.addEventListener("visibilitychange", function () {
-            if (document.hidden) {
-                tabSwitchCount++;
-                document.getElementById("warning").style.display = "flex";
-                setTimeout(() => {
-                    document.getElementById("warning").style.display = "none";
-                }, 3000);
-                
-                if (tabSwitchCount >= 3) {
-                    alert("You have switched tabs too many times! Your quiz attempt may be disqualified.");
-                    window.location.href = "https://www.google.com"; // Redirect if needed
-                }
+        if (document.hidden) {
+            tabSwitchCount++;
+            document.getElementById("warning").style.display = "flex";
+            setTimeout(() => {
+                document.getElementById("warning").style.display = "none";
+            }, 3000);
+
+            if (tabSwitchCount >= 3) {
+                alert("You have switched tabs too many times! Your quiz attempt may be disqualified.");
+                window.location.href = "https://www.google.com"; // Redirect if needed
             }
-        });
-    </script>
+        }
+    });
+</script>
+
 </body>
 </html>
