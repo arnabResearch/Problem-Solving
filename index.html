@@ -8,74 +8,64 @@
         body {
             font-family: Arial, sans-serif;
             text-align: center;
+            margin: 50px;
         }
-        iframe {
-            width: 90%;
-            height: 80vh;
-            border: none;
-        }
-        .warning {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
+        #quiz-container {
+            display: block;
             width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            font-size: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
+            max-width: 800px;
+            margin: auto;
+        }
+        #quiz-blocked {
+            display: none;
+            font-size: 20px;
+            color: red;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <h2>Google Form Quiz</h2>
-    <div class="warning" id="warning">⚠️ Tab switching detected! You are expired. ⚠️</div>
-    
-    <!-- Replace the src URL with your actual Google Form link -->
-    <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSeFhbFW0ExbinRdAeZ3z9Uxt5f6mPWVH_uC-G-FhMX5BlGgRA/viewform?embedded=true"></iframe>
-<script>
-    let tabSwitchCount = 0;
-    let quizDisabled = false;
-    let hasInteracted = false; // Ensures user interaction before detection starts
 
-    // Detect user interaction (click, keypress) to prevent false triggering
-    document.addEventListener("click", () => hasInteracted = true, { once: true });
-    document.addEventListener("keydown", () => hasInteracted = true, { once: true });
+    <h1>Secure Online Quiz</h1>
 
-    document.addEventListener("visibilitychange", function () {
-        if (!hasInteracted) return; // Don't detect tab switches before user interacts
+    <!-- Google Form Container -->
+    <div id="quiz-container">
+        <iframe src="YOUR_GOOGLE_FORM_URL_HERE" width="100%" height="800px" frameborder="0"></iframe>
+    </div>
 
-        if (document.hidden) {
-            tabSwitchCount++;
+    <!-- Blocked Message -->
+    <div id="quiz-blocked">
+        ❌ Your quiz attempt has been locked due to tab switching!
+    </div>
 
-            // Show warning
-            document.getElementById("warning").style.display = "flex";
+    <script>
+        let hasInteracted = false;  // Ensures user interacts first
+        let quizDisabled = false;   // Locks quiz permanently after tab switch
 
-            // Disable the quiz permanently after the first tab switch
-            if (!quizDisabled) {
-                document.getElementById("quiz-container").style.pointerEvents = "none";
-                document.getElementById("quiz-container").style.opacity = "0.5";
-                quizDisabled = true;
-            }
-
-            setTimeout(() => {
-                document.getElementById("warning").style.display = "none";
-            }, 3000);
-
-            // Redirect after 3 tab switches
-            if (tabSwitchCount >= 3) {
-                alert("You have switched tabs too many times! Your quiz attempt is disqualified.");
-                window.location.href = "https://www.google.com"; // Redirect to another page if needed
-            }
+        // Detect user interaction (click or key press)
+        function enableTabDetection() {
+            hasInteracted = true;
+            document.removeEventListener("click", enableTabDetection);
+            document.removeEventListener("keydown", enableTabDetection);
         }
-    });
-</script>
 
+        document.addEventListener("click", enableTabDetection, { once: true });
+        document.addEventListener("keydown", enableTabDetection, { once: true });
 
+        document.addEventListener("visibilitychange", function () {
+            if (!hasInteracted || quizDisabled) return; // Ignore if no interaction or already disabled
+
+            if (document.hidden) {
+                quizDisabled = true; // Lock quiz permanently
+
+                // Hide Google Form & show blocked message
+                document.getElementById("quiz-container").style.display = "none";
+                document.getElementById("quiz-blocked").style.display = "block";
+
+                alert("You switched tabs! Your quiz attempt is now locked.");
+            }
+        });
+    </script>
 
 </body>
 </html>
