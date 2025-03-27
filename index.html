@@ -53,7 +53,7 @@
         document.addEventListener("keydown", enableTabDetection, { once: true });
 
         function lockQuiz() {
-            if (!hasInteracted || quizDisabled) return; // Ignore if no interaction or already disabled
+            if (!hasInteracted || quizDisabled) return; // Ensure lock only happens once
 
             quizDisabled = true; // Lock quiz permanently
 
@@ -64,13 +64,15 @@
             alert("You switched tabs! Your quiz attempt is now locked.");
         }
 
-        // Detect tab switch using multiple methods
+        // Detect tab switch or loss of focus
         document.addEventListener("visibilitychange", function () {
             if (document.hidden) lockQuiz();
         });
 
         window.addEventListener("blur", function () {
-            lockQuiz();
+            setTimeout(() => { 
+                if (!document.hasFocus()) lockQuiz();
+            }, 300); // Small delay to avoid false triggers
         });
 
     </script>
