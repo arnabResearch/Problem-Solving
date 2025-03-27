@@ -37,16 +37,17 @@
     
     <!-- Replace the src URL with your actual Google Form link -->
     <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSeFhbFW0ExbinRdAeZ3z9Uxt5f6mPWVH_uC-G-FhMX5BlGgRA/viewform?embedded=true"></iframe>
-    <script>
+<script>
     let tabSwitchCount = 0;
-    let firstLoad = true;  // Ignore first tab switch event
-    
+    let hasInteracted = false; // User must interact first
+
+    // Detect user interaction (click, keypress)
+    document.addEventListener("click", () => hasInteracted = true);
+    document.addEventListener("keydown", () => hasInteracted = true);
+
     document.addEventListener("visibilitychange", function () {
-        if (firstLoad) {
-            firstLoad = false;  // Ignore first event
-            return;
-        }
-        
+        if (!hasInteracted) return; // Ignore tab switches before user interacts
+
         if (document.hidden) {
             tabSwitchCount++;
             document.getElementById("warning").style.display = "flex";
@@ -61,6 +62,7 @@
         }
     });
 </script>
+
 
 </body>
 </html>
