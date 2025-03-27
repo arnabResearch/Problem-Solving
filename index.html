@@ -39,8 +39,9 @@
     </div>
 
     <script>
-        let hasInteracted = false;  // Ensures user interacts first
-        let quizDisabled = false;   // Locks quiz permanently after tab switch
+        let hasInteracted = false;  // User must interact before detection starts
+        let quizDisabled = false;   // Lock quiz permanently after tab switch
+        let lastFocusTime = Date.now();  // Track last active time
 
         // Detect user interaction (click or key press)
         function enableTabDetection() {
@@ -53,7 +54,7 @@
         document.addEventListener("keydown", enableTabDetection, { once: true });
 
         function lockQuiz() {
-            if (!hasInteracted || quizDisabled) return; // Ensure lock only happens once
+            if (!hasInteracted || quizDisabled) return; // Ensure it locks only once
 
             quizDisabled = true; // Lock quiz permanently
 
@@ -64,16 +65,24 @@
             alert("You switched tabs! Your quiz attempt is now locked.");
         }
 
-        // Detect tab switch or loss of focus
-        document.addEventListener("visibilitychange", function () {
-            if (document.hidden) lockQuiz();
-        });
+        // Alternative method: Monitor focus every second
+        setInterval(() => {
+            if (!document.hasFocus()) {
+                // If tab is inactive for more than 1 second, lock the quiz
+                if (Date.now() - lastFocusTime > 1000) {
+                    lockQuiz();
+                }
+            } else {
+                lastFocusTime = Date.now(); // Reset focus time
+            }
+        }, 500);
 
-        window.addEventListener("blur", function () {
-            setTimeout(() => { 
-                if (!document.hasFocus()) lockQuiz();
-            }, 300); // Small delay to avoid false triggers
-        });
+        // Prevent refresh attempt (if user tries to reload after locking)
+        window.onbeforeunload = function () {
+            if (quizDisabled) {
+                return "You have been locked out of the quiz.";
+            }
+        };
 
     </script>
 
