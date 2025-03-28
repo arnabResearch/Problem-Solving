@@ -30,7 +30,7 @@
 
     <!-- Google Form Container -->
     <div id="quiz-container">
-        <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSeFhbFW0ExbinRdAeZ3z9Uxt5f6mPWVH_uC-G-FhMX5BlGgRA/viewform?usp=dialog" width="100%" height="800px" frameborder="0"></iframe>
+        <iframe src="YOUR_GOOGLE_FORM_URL_HERE" width="100%" height="800px" frameborder="0"></iframe>
     </div>
 
     <!-- Blocked Message -->
@@ -39,11 +39,16 @@
     </div>
 
     <script>
-        let hasInteracted = false;  // User must interact before detection starts
-        let quizDisabled = false;   // Lock quiz permanently after tab switch
-        let lastFocusTime = Date.now();  // Track last active time
+        let hasInteracted = false;
+        let quizDisabled = false;
+        let lastFocusTime = Date.now();
 
-        // Detect user interaction (click or key press)
+        // Check if the quiz is already locked from previous attempts
+        if (localStorage.getItem("quizLocked") === "true") {
+            lockQuiz(true);
+        }
+
+        // Function to enable tab detection after user interacts
         function enableTabDetection() {
             hasInteracted = true;
             document.removeEventListener("click", enableTabDetection);
@@ -53,27 +58,44 @@
         document.addEventListener("click", enableTabDetection, { once: true });
         document.addEventListener("keydown", enableTabDetection, { once: true });
 
-        function lockQuiz() {
-            if (!hasInteracted || quizDisabled) return; // Ensure it locks only once
-
-            quizDisabled = true; // Lock quiz permanently
+        function lockQuiz(isReload = false) {
+            if (!hasInteracted && !isReload) return;
+            quizDisabled = true;
+            localStorage.setItem("quizLocked", "true"); // Store lock status
 
             // Hide Google Form & show blocked message
             document.getElementById("quiz-container").style.display = "none";
             document.getElementById("quiz-blocked").style.display = "block";
 
-            alert("You switched tabs! Your quiz attempt is now locked.");
+            if (!isReload) {
+                alert("You switched tabs! Your quiz attempt is now locked.");
+            }
         }
 
-        // Alternative method: Monitor focus every second
+        // Detect visibility change (tab switch)
+        document.addEventListener("visibilitychange", function () {
+            if (document.hidden) {
+                lockQuiz();
+            }
+        });
+
+        // Detect focus loss (switching apps or tabs)
+        window.addEventListener("blur", function () {
+            setTimeout(() => {
+                if (!document.hasFocus()) {
+                    lockQuiz();
+                }
+            }, 200);
+        });
+
+        // Extra security: Monitor focus loss every second
         setInterval(() => {
             if (!document.hasFocus()) {
-                // If tab is inactive for more than 1 second, lock the quiz
                 if (Date.now() - lastFocusTime > 1000) {
                     lockQuiz();
                 }
             } else {
-                lastFocusTime = Date.now(); // Reset focus time
+                lastFocusTime = Date.now();
             }
         }, 500);
 
