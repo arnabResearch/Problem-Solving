@@ -16,6 +16,12 @@
             max-width: 800px;
             margin: auto;
         }
+        #quiz-warning {
+            display: none;
+            font-size: 18px;
+            color: orange;
+            font-weight: bold;
+        }
         #quiz-blocked {
             display: none;
             font-size: 20px;
@@ -28,23 +34,29 @@
 
     <h1>Secure Online Quiz</h1>
 
+    <!-- Warning Message -->
+    <div id="quiz-warning">
+        ⚠ You switched tabs! Please submit your quiz immediately or you will be locked out.
+    </div>
+
     <!-- Google Form Container -->
     <div id="quiz-container">
         <iframe id="quiz-frame" src="https://docs.google.com/forms/d/e/1FAIpQLSeFhbFW0ExbinRdAeZ3z9Uxt5f6mPWVH_uC-G-FhMX5BlGgRA/viewform?usp=dialog" width="100%" height="800px" frameborder="0"></iframe>
     </div>
 
-    <!-- Blocked Message -->
+    <!-- Locked Message -->
     <div id="quiz-blocked">
-        ❌ Your quiz attempt has been locked and submitted due to tab switching!
+        ❌ Your quiz attempt is locked! You cannot submit again.
     </div>
 
     <script>
         let hasInteracted = false;
-        let quizDisabled = false;
+        let quizLocked = localStorage.getItem("quizLocked") === "true";
+        let warningTimeout;
+        let lockTimeout;
 
-        // Check if the quiz is already locked
-        if (localStorage.getItem("quizLocked") === "true") {
-            lockQuiz(true);
+        if (quizLocked) {
+            fullLockQuiz();
         }
 
         function enableTabDetection() {
@@ -56,57 +68,60 @@
         document.addEventListener("click", enableTabDetection, { once: true });
         document.addEventListener("keydown", enableTabDetection, { once: true });
 
-        function lockQuiz(isReload = false) {
-            if (!hasInteracted && !isReload) return;
-            quizDisabled = true;
-            localStorage.setItem("quizLocked", "true");
+        function warnUser() {
+            if (!hasInteracted || quizLocked) return;
+            document.getElementById("quiz-warning").style.display = "block";
 
-            // **NEW: Auto-submit Google Form before locking**
-            try {
-                let iframe = document.getElementById("quiz-frame").contentWindow.document;
-                let submitButton = iframe.querySelector("input[type=submit], button[type=submit]");
-                if (submitButton) {
-                    submitButton.click();  // Trigger form submission
-                }
-            } catch (error) {
-                console.log("Auto-submit failed (Cross-Origin Restriction).");
-            }
-
-            // Hide quiz and show locked message
-            document.getElementById("quiz-container").style.display = "none";
-            document.getElementById("quiz-blocked").style.display = "block";
-
-            if (!isReload) {
-                alert("You switched tabs! Your quiz has been submitted and locked.");
-            }
+            // Give user 10 seconds to return before locking them out
+            clearTimeout(lockTimeout);
+            lockTimeout = setTimeout(lockQuiz, 10000);
         }
 
-        // Detect tab switch (visibility change)
+        function lockQuiz() {
+            if (!hasInteracted || quizLocked) return;
+            quizLocked = true;
+            localStorage.setItem("quizLocked", "true");
+
+            // Hide warning, allow submission, but no re-entry
+            document.getElementById("quiz-warning").style.display = "none";
+            document.getElementById("quiz-container").style.display = "block";
+            document.getElementById("quiz-blocked").style.display = "block";
+
+            alert("❌ You have been locked out. If you haven't submitted, do it now!");
+        }
+
+        function fullLockQuiz() {
+            document.getElementById("quiz-container").style.display = "none";
+            document.getElementById("quiz-warning").style.display = "none";
+            document.getElementById("quiz-blocked").style.display = "block";
+        }
+
+        // 🔹 Detect tab switch (visibility change)
         document.addEventListener("visibilitychange", function () {
             if (document.hidden) {
-                lockQuiz();
+                warnUser();
             }
         });
 
-        // Detect window blur (focus loss)
+        // 🔹 Detect window losing focus
         window.addEventListener("blur", function () {
             setTimeout(() => {
                 if (!document.hasFocus()) {
-                    lockQuiz();
+                    warnUser();
                 }
             }, 200);
         });
 
-        // Extra: Check focus every second
+        // 🔹 Backup: Check focus every second (for Chrome)
         setInterval(() => {
             if (!document.hasFocus()) {
-                lockQuiz();
+                warnUser();
             }
-        }, 500);
+        }, 1000);
 
-        // Prevent refreshing to retry
+        // 🔹 Prevent refreshing to retry
         window.onbeforeunload = function () {
-            if (quizDisabled) {
+            if (quizLocked) {
                 return "You have been locked out of the quiz.";
             }
         };
