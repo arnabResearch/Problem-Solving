@@ -30,7 +30,7 @@
 
     <!-- Google Form Container -->
     <div id="quiz-container">
-        <iframe id="quiz-frame" src="https://docs.google.com/forms/d/e/1FAIpQLSeFhbFW0ExbinRdAeZ3z9Uxt5f6mPWVH_uC-G-FhMX5BlGgRA/viewform?usp=dialog" width="100%" height="800px" frameborder="0"></iframe>
+        <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSeFhbFW0ExbinRdAeZ3z9Uxt5f6mPWVH_uC-G-FhMX5BlGgRA/viewform?usp=dialog" width="100%" height="800px" frameborder="0"></iframe>
     </div>
 
     <!-- Blocked Message -->
@@ -41,12 +41,14 @@
     <script>
         let hasInteracted = false;
         let quizDisabled = false;
+        let lastFocusTime = Date.now();
 
-        // Check if the quiz is already locked
+        // Check if the quiz is already locked from previous attempts
         if (localStorage.getItem("quizLocked") === "true") {
             lockQuiz(true);
         }
 
+        // Function to enable tab detection after user interacts
         function enableTabDetection() {
             hasInteracted = true;
             document.removeEventListener("click", enableTabDetection);
@@ -59,9 +61,9 @@
         function lockQuiz(isReload = false) {
             if (!hasInteracted && !isReload) return;
             quizDisabled = true;
-            localStorage.setItem("quizLocked", "true");
+            localStorage.setItem("quizLocked", "true"); // Store lock status
 
-            // Hide quiz and show locked message
+            // Hide Google Form & show blocked message
             document.getElementById("quiz-container").style.display = "none";
             document.getElementById("quiz-blocked").style.display = "block";
 
@@ -70,14 +72,14 @@
             }
         }
 
-        // Detect tab switch (visibility change)
+        // Detect visibility change (tab switch)
         document.addEventListener("visibilitychange", function () {
             if (document.hidden) {
                 lockQuiz();
             }
         });
 
-        // Detect window blur (focus loss)
+        // Detect focus loss (switching apps or tabs)
         window.addEventListener("blur", function () {
             setTimeout(() => {
                 if (!document.hasFocus()) {
@@ -86,19 +88,24 @@
             }, 200);
         });
 
-        // Extra: Check focus every second
+        // Extra security: Monitor focus loss every second
         setInterval(() => {
             if (!document.hasFocus()) {
-                lockQuiz();
+                if (Date.now() - lastFocusTime > 1000) {
+                    lockQuiz();
+                }
+            } else {
+                lastFocusTime = Date.now();
             }
         }, 500);
 
-        // Prevent refreshing to retry
+        // Prevent refresh attempt (if user tries to reload after locking)
         window.onbeforeunload = function () {
             if (quizDisabled) {
                 return "You have been locked out of the quiz.";
             }
         };
+
     </script>
 
 </body>
