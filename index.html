@@ -30,25 +30,23 @@
 
     <!-- Google Form Container -->
     <div id="quiz-container">
-        <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSeFhbFW0ExbinRdAeZ3z9Uxt5f6mPWVH_uC-G-FhMX5BlGgRA/viewform?usp=dialog" width="100%" height="800px" frameborder="0"></iframe>
+        <iframe id="quiz-frame" src="https://docs.google.com/forms/d/e/1FAIpQLSeFhbFW0ExbinRdAeZ3z9Uxt5f6mPWVH_uC-G-FhMX5BlGgRA/viewform?usp=dialog" width="100%" height="800px" frameborder="0"></iframe>
     </div>
 
     <!-- Blocked Message -->
     <div id="quiz-blocked">
-        ❌ Your quiz attempt has been locked due to tab switching!
+        ❌ Your quiz attempt has been locked and submitted due to tab switching!
     </div>
 
     <script>
         let hasInteracted = false;
         let quizDisabled = false;
-        let lastFocusTime = Date.now();
 
-        // Check if the quiz is already locked from previous attempts
+        // Check if the quiz is already locked
         if (localStorage.getItem("quizLocked") === "true") {
             lockQuiz(true);
         }
 
-        // Function to enable tab detection after user interacts
         function enableTabDetection() {
             hasInteracted = true;
             document.removeEventListener("click", enableTabDetection);
@@ -61,25 +59,36 @@
         function lockQuiz(isReload = false) {
             if (!hasInteracted && !isReload) return;
             quizDisabled = true;
-            localStorage.setItem("quizLocked", "true"); // Store lock status
+            localStorage.setItem("quizLocked", "true");
 
-            // Hide Google Form & show blocked message
+            // **NEW: Auto-submit Google Form before locking**
+            try {
+                let iframe = document.getElementById("quiz-frame").contentWindow.document;
+                let submitButton = iframe.querySelector("input[type=submit], button[type=submit]");
+                if (submitButton) {
+                    submitButton.click();  // Trigger form submission
+                }
+            } catch (error) {
+                console.log("Auto-submit failed (Cross-Origin Restriction).");
+            }
+
+            // Hide quiz and show locked message
             document.getElementById("quiz-container").style.display = "none";
             document.getElementById("quiz-blocked").style.display = "block";
 
             if (!isReload) {
-                alert("You switched tabs! Your quiz attempt is now locked.");
+                alert("You switched tabs! Your quiz has been submitted and locked.");
             }
         }
 
-        // Detect visibility change (tab switch)
+        // Detect tab switch (visibility change)
         document.addEventListener("visibilitychange", function () {
             if (document.hidden) {
                 lockQuiz();
             }
         });
 
-        // Detect focus loss (switching apps or tabs)
+        // Detect window blur (focus loss)
         window.addEventListener("blur", function () {
             setTimeout(() => {
                 if (!document.hasFocus()) {
@@ -88,24 +97,19 @@
             }, 200);
         });
 
-        // Extra security: Monitor focus loss every second
+        // Extra: Check focus every second
         setInterval(() => {
             if (!document.hasFocus()) {
-                if (Date.now() - lastFocusTime > 1000) {
-                    lockQuiz();
-                }
-            } else {
-                lastFocusTime = Date.now();
+                lockQuiz();
             }
         }, 500);
 
-        // Prevent refresh attempt (if user tries to reload after locking)
+        // Prevent refreshing to retry
         window.onbeforeunload = function () {
             if (quizDisabled) {
                 return "You have been locked out of the quiz.";
             }
         };
-
     </script>
 
 </body>
